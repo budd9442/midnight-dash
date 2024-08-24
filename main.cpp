@@ -35,7 +35,6 @@ int main()
     int fps = 120;
     char playerName[20] = "\0"; // Buffer for storing the player's name
     int letterCount = 0;        // Count of entered letters
-    bool nameConfirmed = false; // Flag to check if the name is confirmed
 
     InitWindow(screenWidth, screenHeight, "Midnight dash");
     SetTargetFPS(fps);
@@ -64,7 +63,8 @@ int main()
     Texture2D heartTexture = LoadTexture("sprites/other/heart.png");    // Heart sprite
     Texture2D frameTexture = LoadTexture("sprites/other/frame.png");    // Heart sprite
     Texture2D profileBackgroundTexture = LoadTexture("profileSelector.png");
-
+    Texture2D controlsTexture = LoadTexture("sprites/other/controls.png");
+    Texture2D creditsTexture = LoadTexture("sprites/other/credits.png");
     // Player setup
     Rectangle player = {100, screenHeight - playerTextures[character - 1][0].height - 50, (float)playerTextures[character - 1][0].width, (float)playerTextures[character - 1][0].height}; // Player's position and size
     float playerJumpVelocity = -8;                                                                                                                                                        // How high the player jumps
@@ -148,7 +148,7 @@ int main()
                 }
                 else if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 450, 200, 30}))
                 {
-                    currentState = CREDITS; // Go to credits screen
+                    exit(0);
                 }
             }
         }
@@ -167,7 +167,7 @@ int main()
         else if (currentState == INSTRUCTIONS)
         {
             // Check for user input to return to the menu
-            if (IsKeyPressed(KEY_BACKSPACE))
+            if (GetKeyPressed())
             {
                 currentState = MENU; // Go back to main menu
             }
@@ -175,7 +175,7 @@ int main()
         else if (currentState == CREDITS)
         {
             // Check for user input to return to the menu
-            if (IsKeyPressed(KEY_BACKSPACE))
+            if (GetKeyPressed())
             {
                 currentState = MENU; // Go back to main menu
             }
@@ -384,7 +384,7 @@ int main()
                 // Draw Game Over screen
                 DrawText("GAME OVER", screenWidth / 2 - MeasureText("GAME OVER", 40) / 2, screenHeight / 2 - 20, 40, RED);
                 DrawText("Press R to Restart", screenWidth / 2 - MeasureText("Press R to Restart", 20) / 2, screenHeight / 2 + 40, 20, GRAY);
-                DrawText(("Score : "+to_string(score)).c_str() ,430,490,32,WHITE);
+                DrawText(("Score : " + to_string(score)).c_str(), 430, 490, 32, WHITE);
                 // Restart game when R is pressed
                 if (IsKeyPressed(KEY_R))
                 {
@@ -412,10 +412,10 @@ int main()
                 DrawTexture(obstacleTexture, (int)obstacle.x, (int)obstacle.y, WHITE);
                 DrawTexture(coinTextures[currentFrame2], (int)coin.x, (int)coin.y, YELLOW);
 
-                // Draw lives as hearts (represented by small rectangles for simplicity)
+                // Draw lives as hearts
                 for (int i = 0; i < lives; i++)
                 {
-                    // DrawRectangle( 20, 20, RED);  // Draw heart shapes
+                    // DrawRectangle( 20, 20, RED);
                     DrawTexture(heartTexture, 10 + 36 * i, 10, WHITE);
                 }
 
@@ -423,25 +423,17 @@ int main()
                     DrawText(("Score : " + to_string(score)).c_str(), (screenWidth - 110 - (floor(log10(score + 1) + 1)) * 10), 10, 24, WHITE);
                 else
                     DrawText("Score : 00", screenWidth - 130, 10, 24, WHITE);
-
-                // Draw instruction text
-                // DrawText("Press SPACE to jump!", 10, 40, 20, DARKGRAY);
             }
         }
         else if (currentState == INSTRUCTIONS)
         {
             // Draw the instructions screen
-            DrawText("Instructions:", screenWidth / 2 - MeasureText("Instructions:", 30) / 2, 50, 30, DARKGRAY);
-            DrawText("Use SPACE to jump and avoid obstacles.", screenWidth / 2 - MeasureText("Use SPACE to jump and avoid obstacles.", 20) / 2, 150, 20, BLACK);
-            DrawText("Collect coins to increase your score.", screenWidth / 2 - MeasureText("Collect coins to increase your score.", 20) / 2, 200, 20, BLACK);
-            DrawText("Press BACKSPACE to return to the main menu.", screenWidth / 2 - MeasureText("Press BACKSPACE to return to the main menu.", 20) / 2, 300, 20, GRAY);
+            DrawTexture(controlsTexture, 0, 0, WHITE);
         }
         else if (currentState == CREDITS)
         {
             // Draw the credits screen
-            DrawText("Credits:", screenWidth / 2 - MeasureText("Credits:", 30) / 2, 50, 30, DARKGRAY);
-            DrawText("Developed by Your Name", screenWidth / 2 - MeasureText("Developed by Your Name", 20) / 2, 150, 20, BLACK);
-            DrawText("Press BACKSPACE to return to the main menu.", screenWidth / 2 - MeasureText("Press BACKSPACE to return to the main menu.", 20) / 2, 300, 20, GRAY);
+            DrawTexture(creditsTexture, 0, 0, WHITE);
         }
         else if (currentState == CHARACTER)
         {
@@ -452,7 +444,7 @@ int main()
             frameCounter3 += GetFrameTime() * 5; // Update counter based on time and animation speed
 
             int key = GetKeyPressed();
-            if (key >= 32 && key <= 125 && letterCount < 19)
+            if (key >= 32 && key <= 125 && letterCount < 12)
             {
                 playerName[letterCount] = (char)key;
                 playerName[letterCount + 1] = '\0';
