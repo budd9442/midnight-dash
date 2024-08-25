@@ -1,7 +1,9 @@
 #include "raylib.h"
 #include <iostream>
 #include <math.h>
+#include <fstream>
 using namespace std;
+
 typedef enum GameState
 {
     MENU,
@@ -21,13 +23,35 @@ string avatars[] = {
 string descriptions[] = {
     "    Very classy",
     "    Very demure",
-    "  Very thoughtful",
+    "    Very mindful",
     "Terrible at driving",
-    "   He doesnt talk"};
+    "    doesnt talk"};
+
+int getHighScore(){
+    ifstream scorefile("scores");
+    int n;
+    int max;
+    scorefile>>max;
+    while(scorefile>>n){
+        if(n>max) max = n;
+    }
+    scorefile.close();
+    return max;
+}
+
+void writeScore(int n){
+    fstream scorefile("scores",ios::app);
+    scorefile<<endl<<n;
+    scorefile.close();
+}
+
+
 
 int main()
 {
+    //system("handlescores.exe ");
     // Initialization
+    bool scoreUpdated = false;
     const int screenWidth = 1024;
     const int screenHeight = 768;
     int character = 2;
@@ -37,6 +61,7 @@ int main()
 
     InitWindow(screenWidth, screenHeight, "Midnight dash");
     SetTargetFPS(fps);
+    int highScore = getHighScore();
     // Load textures (Replace with your own image file paths)
     Texture2D playerTextures[5][6];
     Texture2D coinTextures[6];
@@ -89,7 +114,7 @@ int main()
     int score = 0;     // Player's score
 
     // Life system
-    int lives = 10;        // Number of lives
+    int lives = 3;        // Number of lives
     bool gameOver = false; // Game Over flag
 
     int currentFrame = 0;      // Current frame of animation
@@ -110,13 +135,14 @@ int main()
     float obstacleSpawnInterval = 2.8f;
     float coinSpawnTimer = 0.0f;
     float coinSpawnInterval = 3.7f;
-
+    
     // Main game loop
     while (!WindowShouldClose())
     {
         if (currentState == MENU)
         {
             DrawTexture(menuTexture, 0, 0, WHITE);
+            DrawText(("High Score : "+to_string(highScore)).c_str(),610,630,32,RAYWHITE);
             // Check for button clicks in the main menu
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             {
@@ -126,7 +152,7 @@ int main()
                 if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 300, 100, 40}))
                 {
                     currentState = CHARACTER; // Start the game
-                    lives = 10;
+                    lives = 3;
                     gameOver = false;
                     obstacle.x = screenWidth;
                     fps = 120;
@@ -201,6 +227,7 @@ int main()
             DrawText("> Controls", 720, 350, 36, PURPLE);
             DrawText("> Credits", 720, 400, 36, PURPLE);
             DrawText("> Quit", 720, 450, 36, PURPLE);
+            scoreUpdated = false;
             // DrawRectangle(screenWidth / 2 - 50, screenHeight / 2, 100, 40, LIGHTGRAY);
 
             // DrawRectangle(screenWidth / 2 - 50, screenHeight / 2 + 60, 100, 40, LIGHTGRAY);
@@ -371,26 +398,44 @@ int main()
             // Draw background
             DrawTexture(backgroundTexture, (int)backgroundX1, 0, WHITE);
             DrawTexture(backgroundTexture, (int)backgroundX2, 0, WHITE);
-
+            
             if (gameOver)
             {
                 // Draw Game Over screen
-                DrawText("GAME OVER", screenWidth / 2 - MeasureText("GAME OVER", 40) / 2, screenHeight / 2 - 20, 40, RED);
-                DrawText("Press R to Restart", screenWidth / 2 - MeasureText("Press R to Restart", 20) / 2, screenHeight / 2 + 40, 20, GRAY);
+                DrawText("GAME OVER", screenWidth / 2 - MeasureText("GAME OVER", 100) / 2, screenHeight / 2 - 20, 100, RED);
+                DrawText("Press R to Restart, M to go back to menu", 300,680, 20, GRAY);
+                if(score>getHighScore())
+                    DrawText(("New Highscore : " + to_string(score) ).c_str(), 400, 490, 32, WHITE);
+                else
                 DrawText(("Score : " + to_string(score)).c_str(), 430, 490, 32, WHITE);
+                if(!scoreUpdated)
+                {
+                    writeScore(score);
+                    scoreUpdated =  true;
+                }
                 // Restart game when R is pressed
                 if (IsKeyPressed(KEY_R))
                 {
-                    lives = 10;
+                    lives = 3;
                     gameOver = false;
                     obstacle.x = screenWidth;
                     fps = 120;
                     SetTargetFPS(fps);
-                    currentState == GAMEPLAY;
+                    currentState = GAMEPLAY;
                     player.x = 100;
                     player.y = 700;
                     isHurt = false;
                     score = 0;
+                    scoreUpdated = false;
+                }
+                if (IsKeyPressed(KEY_M))
+                {
+                    gameOver = false;
+                    fps = 120;
+                    SetTargetFPS(fps);
+                    highScore = getHighScore();
+                    currentState = MENU;
+                    scoreUpdated =  false;
                 }
             }
             else
@@ -451,7 +496,7 @@ int main()
 
             if (IsKeyPressed(KEY_ENTER) && letterCount > 0)
             {
-                lives = 10;
+                lives = 3;
                 gameOver = false;
                 obstacle.x = screenWidth;
                 fps = 120;
@@ -501,7 +546,7 @@ int main()
                 }
                 if (CheckCollisionPointRec(mousePosition, (Rectangle){655, 655, 215, 60}))
                 {
-                    lives = 10;
+                    lives = 3;
                     gameOver = false;
                     obstacle.x = screenWidth;
                     fps = 120;
