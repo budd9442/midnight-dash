@@ -1,9 +1,7 @@
 #include "raylib.h"
-
 #include <iostream>
 #include <math.h>
 using namespace std;
-
 typedef enum GameState
 {
     MENU,
@@ -19,6 +17,7 @@ string avatars[] = {
     "  Random girl #3",
     "   Intern Witch",
     "Unidentified blue dog"};
+
 string descriptions[] = {
     "    Very classy",
     "    Very demure",
@@ -148,6 +147,7 @@ int main()
                 }
                 else if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 450, 200, 30}))
                 {
+                    CloseWindow();
                     exit(0);
                 }
             }
@@ -292,7 +292,6 @@ int main()
                     coinSpawnTimer = 0.0f;
                     coinSpawnInterval = rand() % 5;
                 }
-
                 // Check for collision between player and obstacle
                 if (CheckCollisionRecs(player, obstacle))
                 {
@@ -309,14 +308,12 @@ int main()
                         gameOver = true;
                     }
                 }
-
                 if (CheckCollisionRecs(player, coin))
                 {
                     // Increase score and reset coin position
                     score += 10;
                     coin.x = 2000;
                 }
-
                 frameCounter2 += GetFrameTime() * 5; // Update counter based on time and animation speed
                 if (frameCounter2 >= 1.0f)
                 {
@@ -325,7 +322,6 @@ int main()
                     if (currentFrame2 > 5)
                         currentFrame2 = 0; // Loop through frames (assuming 6 frames total)
                 }
-
                 if (!isJumping)
                 {
                     frameCounter += GetFrameTime() * frameSpeed; // Update counter based on time and animation speed
@@ -353,7 +349,6 @@ int main()
                 {
                     backgroundX2 = backgroundX1 + backgroundTexture.width;
                 }
-
                 // Handle hurt state and flashing effect
                 if (isHurt)
                 {
@@ -371,10 +366,8 @@ int main()
                     }
                 }
             }
-
             BeginDrawing();
             ClearBackground(RAYWHITE);
-
             // Draw background
             DrawTexture(backgroundTexture, (int)backgroundX1, 0, WHITE);
             DrawTexture(backgroundTexture, (int)backgroundX2, 0, WHITE);
@@ -402,7 +395,6 @@ int main()
             }
             else
             {
-
                 if (!isHurt || (flashTimer < flashInterval / 2))
                 {
                     DrawTexture(playerTextures[character - 1][currentFrame], (int)player.x, (int)player.y, WHITE);
@@ -482,8 +474,6 @@ int main()
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             {
                 Vector2 mousePosition = GetMousePosition();
-
-                // Play Button
                 if (CheckCollisionPointRec(mousePosition, (Rectangle){450, 250, 120, 120}))
                 {
                     character = 1;
@@ -523,19 +513,11 @@ int main()
                     score = 0;
                 }
             }
-
-            // DrawTexture(frameTexture, (int)previeW.x, (int)previeW.y-100, WHITE);
             DrawTexture(playerTextures[character - 1][currentFrame3], (int)previeW.x, (int)previeW.y, WHITE);
         }
 
         EndDrawing();
     }
-
-    // De-Initialization
-    UnloadTexture(playerTextures[0][0]); // Unload player texture
-    UnloadTexture(backgroundTexture);    // Unload background texture
-    UnloadTexture(obstacleTexture);      // Unload obstacle texture
-    CloseWindow();                       // Close window and OpenGL context
-
+    CloseWindow(); // Close window and OpenGL context
     return 0;
 }
