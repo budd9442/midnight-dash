@@ -1,13 +1,14 @@
-#include "raylib.h"
-#include <iostream>
-#include <math.h>
-#include <fstream>
-#include <vector>
-#include <string>
-#include <thread>
+// importing relevent libraries
+#include "raylib.h" // for game design
+#include <iostream> // basic input output for debugging
+#include <math.h>   // generating random numbers
+#include <fstream>  // file handling
+#include <vector>   // to store highscore pairs
+#include <string>   // to use strings
+#include <thread>   // to run highscore uploads and downloads in a different thread
 using namespace std;
 
-typedef enum GameState
+typedef enum GameState // Enumerate to keep track of game state
 {
     MENU,
     GAMEPLAY,
@@ -16,23 +17,23 @@ typedef enum GameState
     CHARACTER
 } GameState;
 
-vector<pair<string, string>> highScores;
+vector<pair<string, string>> highScores; // vector to store name and score of top 5 players
 
-string avatars[] = {
+string avatars[] = { // names of avatars
     "  Random girl #1",
     "  Random girl #2",
     "  Random girl #3",
     "   Intern Witch",
     "Unidentified blue dog"};
 
-string descriptions[] = {
+string descriptions[] = { // avatar descriptions
     "    Very classy",
     "    Very demure",
     "    Very mindful",
     "Terrible at driving",
     "    doesnt talk"};
 
-int getPersonalBest()
+int getPersonalBest() // get the highest score from locally saved scores file
 {
     ifstream scorefile("scores");
     int n;
@@ -43,19 +44,29 @@ int getPersonalBest()
         if (n > max)
             max = n;
     }
-    scorefile.close();
+    scorefile.close(); // close file after using
     return max;
 }
 
-void writeScore(int n)
+void writeScore(int n) // write the score to loclaly saved scores file
 {
-    fstream scorefile("scores", ios::app);
-    scorefile << endl
+    fstream scorefile("scores", ios::app); // ios:app used to append contents to the existing fiile..
+    scorefile << endl                      // ..to avoid losing exisiting score records
               << n;
-    scorefile.close();
+    scorefile.close(); // close file after using
 }
 
-void updateHighScores()
+void uploadScores(string name, int score) // uses a precompiled binary to upload the scores to a firebase real time database
+{
+    system(("uploadscore.exe " + string(name) + " " + to_string(score)).c_str()); // ./uploadscore.exe <name> <score>
+}
+
+void downloadScores() // uses a precompiled binary to get the top 5 scores from firebase and store them in highscores file
+{
+    system("getScores.exe"); // ./getscores.exe
+}
+
+void updateHighScores() // read the updated highscores file and store the data in highscores vector
 {
     highScores.clear();
     string name, score;
@@ -65,40 +76,29 @@ void updateHighScores()
         scorefile >> score;
         highScores.push_back(make_pair(name, score));
     }
-    scorefile.close();
+    scorefile.close(); // close the file after using
 }
 
-void uploadScores(string name, int score)
+int main() // main function
 {
-    system(("uploadscore.exe " + string(name) + " " + to_string(score)).c_str());
-}
-
-void downloadScores(){
-    system("getScores.exe");
-}
-
-int main()
-{
-    cout << system("getScores");
-    // return 0;
-    //  system("handlescores.exe ");
+    thread downloadThread(downloadScores);
+    downloadThread.detach();
     //   Initialization
-    bool scoreUpdated = false;
-    const int screenWidth = 1024;
-    const int screenHeight = 768;
-    int character = 2;
-    int fps = 120;
-    char playerName[20] = "\0"; // Buffer for storing the player's name
-    int letterCount = 0;        // Count of entered letters
+    bool scoreUpdated = false; // variable to keep track whether current score is updated locally and online
 
-    InitWindow(screenWidth, screenHeight, "Midnight dash");
-    SetTargetFPS(fps);
-    int personalBest = getPersonalBest();
-    // Load textures (Replace with your own image file paths)
-    Texture2D playerTextures[5][6];
-    Texture2D coinTextures[6];
+    const int screenWidth = 1024; // width of the game screen
+    const int screenHeight = 768; // height of the game screen
+    int character = 1;            // index of currently selected character
+    int fps = 120;                // starting 'frames per second' of the game
+    char playerName[20] = "\0";   // Buffer for storing the player's name
+    int letterCount = 0;          // Count of entered letters
 
-    GameState currentState = MENU;
+    InitWindow(screenWidth, screenHeight, "Midnight dash"); // default function to initialize the game window
+    SetTargetFPS(fps);                                      // sets starting fps
+
+    // loading relevant texture resources
+    Texture2D playerTextures[5][6]; // a 2D array to store frames of 5 characters ( 6 frames each )
+    Texture2D coinTextures[6];      // coin textures
 
     for (int k = 0; k < 5; k++)
     {
@@ -113,62 +113,81 @@ int main()
         coinTextures[i] = LoadTexture(("sprites/other/coin/" + to_string(i + 1) + ".png").c_str());
     }
 
-    Texture2D backgroundTexture = LoadTexture("background.png"); // Background image
-    Texture2D menuTexture = LoadTexture("menu.png");
-    Texture2D obstacleTexture = LoadTexture("sprites/obstacles/1.png"); // Obstacle sprite
-    Texture2D heartTexture = LoadTexture("sprites/other/heart.png");    // Heart sprite
-    Texture2D frameTexture = LoadTexture("sprites/other/frame.png");    // Heart sprite
-    Texture2D profileBackgroundTexture = LoadTexture("profileSelector.png");
-    Texture2D controlsTexture = LoadTexture("sprites/other/controls.png");
-    Texture2D creditsTexture = LoadTexture("sprites/other/credits.png");
+    Texture2D backgroundTexture = LoadTexture("background.png");             // Background image
+    Texture2D menuTexture = LoadTexture("menu.png");                         // menu texture
+    Texture2D obstacleTexture = LoadTexture("sprites/obstacles/1.png");      // Obstacle texture
+    Texture2D heartTexture = LoadTexture("sprites/other/heart.png");         // Heart texture
+    Texture2D profileBackgroundTexture = LoadTexture("profileSelector.png"); // profile selector background
+    Texture2D controlsTexture = LoadTexture("sprites/other/controls.png");   // controls background
+    Texture2D creditsTexture = LoadTexture("sprites/other/credits.png");     // credits background
+
+    int personalBest = getPersonalBest(); // retrieves personal best score and stores it in a varianle
+
+    GameState currentState = MENU; // set the current game state to menu
+
+    // bounding box of preview area in character selectiion menu
+    Rectangle previeW = {200, 350, 400, 200};
+
     // Player setup
     Rectangle player = {100, screenHeight - playerTextures[character - 1][0].height - 50, (float)playerTextures[character - 1][0].width, (float)playerTextures[character - 1][0].height}; // Player's position and size
-    float playerJumpVelocity = -8;                                                                                                                                                        // How high the player jumps
-    float playerVelocity = 0;                                                                                                                                                             // Player's vertical velocity
-    bool isJumping = false;                                                                                                                                                               // Is the player jumping?
-
-    Rectangle previeW = {100, 250, 400, 200};
+    float playerJumpVelocity = -8;                                                                                                                                                        // negative because player jumps vertically upwards ( -y )                                                                                                                                                        // How high the player jumps
+    float playerVelocity = 0;                                                                                                                                                             // variable to track player velocity                                                                                                                                                             // Player's vertical velocity
+    bool isJumping = false;                                                                                                                                                               // varuable to track whether a player is jumping                                                                                                                   // Is the player jumping?
 
     // Gravity
     const float gravity = 0.1;
 
+    // background scrolling
     float backgroundX1 = 0.0f;
     float backgroundX2 = (float)backgroundTexture.width;
     float backgroundScrollSpeed = 5.0f;
 
     // Obstacle setup
     Rectangle obstacle = {screenWidth, screenHeight - obstacleTexture.height - 50, (float)obstacleTexture.width, (float)obstacleTexture.height}; // Obstacle position and size
-    float obstacleSpeed = 5;                                                                                                                     // Speed of the obstacle
+    float obstacleSpeed = 5;                                                                                                                     // Speed of an obstacle                                                                                                                  // Speed of the obstacle
 
+    // coin setup
     Rectangle coin = {screenWidth, screenHeight - coinTextures[0].height - 100, (float)coinTextures[0].width, (float)coinTextures[0].height}; // Coin position and size
     coin.x = 2000;
     int coinSpeed = 5; // Speed of the coin
-    int score = 0;     // Player's score
 
-    // Life system
-    int lives = 3;         // Number of lives
+    int score = 0; // Player's score
+
+    int lives = 3; // Number of lives
+
     bool gameOver = false; // Game Over flag
 
-    int currentFrame = 0;      // Current frame of animation
-    float frameCounter = 0.0f; // Counter for animation timing
-    int currentFrame2 = 0;     // Current frame of animation
-    float frameCounter2 = 0.0f;
-    int currentFrame3 = 0; // Current frame of animation
-    float frameCounter3 = 0.0f;
-    float frameSpeed = 8.0f; // Speed of animation (frames per second)
+    // frame tracking for animating the runner
+    int runnerFrame = 0;
+    float runnerFrameCounter = 0.0f;
 
-    // Hurt effect variables
+    // frame tracking for animating coins
+    int coinFrame = 0;
+    float coinFrameCounter = 0.0f;
+
+    // frame tracking for animating the character previews
+    int previewFrame = 0;
+    float previewFrameCounter = 0.0f;
+
+    float frameSpeed = 8.0f; // Speed of animation
+
+    // Hurt effect
     bool isHurt = false;              // Is the player hurt?
     float hurtTimer = 0.0f;           // Timer to track hurt state duration
-    const float hurtDuration = 0.5f;  // Duration of the hurt state (1 second)
+    const float hurtDuration = 0.5f;  // Duration of the hurt state
     float flashTimer = 0.0f;          // Timer to control the flashing effect
     const float flashInterval = 0.1f; // Interval between flashes (0.1 second)
+
+    // obstacle spawning
     float obstacleSpawnTimer = 0.0f;
     float obstacleSpawnInterval = 2.8f;
+
+    // coin spawning
     float coinSpawnTimer = 0.0f;
     float coinSpawnInterval = 3.7f;
-    system("cls");
+
     updateHighScores();
+
     // Main game loop
     while (!WindowShouldClose())
     {
@@ -176,8 +195,14 @@ int main()
         {
             DrawTexture(menuTexture, 0, 0, WHITE);
             DrawText(("Personal Best : " + to_string(personalBest)).c_str(), 510, 630, 32, RAYWHITE);
+            DrawText("> Play", 720, 300, 36, PURPLE);
+            DrawText("> Controls", 720, 350, 36, PURPLE);
+            DrawText("> Credits", 720, 400, 36, PURPLE);
+            DrawText("> Quit", 720, 450, 36, PURPLE);
+
+            scoreUpdated = false;
             int count = 0;
-            //DrawText("Leaderboard ", 50, 100, 32, RAYWHITE);
+
             for (pair<string, string> p : highScores)
             {
                 DrawText((p.first).c_str(), 60, 170 + (count * 30), 24, WHITE);
@@ -213,6 +238,7 @@ int main()
                 {
                     currentState = CREDITS; // Go to credits screen
                 }
+                // exit buttpn
                 else if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 450, 200, 30}))
                 {
                     CloseWindow();
@@ -222,60 +248,7 @@ int main()
         }
         else if (currentState == GAMEPLAY)
         {
-            // All the gameplay code goes here (like the previous logic)
-            // Handle player jumping, collision detection, obstacle/coin movement, etc.
-
-            // Add logic to return to the main menu if the game is over
-            // if (gameOver && IsKeyPressed(KEY_R))
-            // {
-            //     currentState = MENU; // Go back to main menu
-            // }d
             player = {player.x, player.y, (float)playerTextures[character - 1][0].width, (float)playerTextures[character - 1][0].height}; // Player's position and size
-        }
-        else if (currentState == INSTRUCTIONS)
-        {
-            // Check for user input to return to the menu
-            if (GetKeyPressed())
-            {
-                currentState = MENU; // Go back to main menu
-            }
-        }
-        else if (currentState == CREDITS)
-        {
-            // Check for user input to return to the menu
-            if (GetKeyPressed())
-            {
-                currentState = MENU; // Go back to main menu
-            }
-        }
-        else if (currentState == CHARACTER)
-        {
-            // Check for user input to return to the menu
-            if (IsKeyPressed(KEY_ESCAPE))
-            {
-                currentState = MENU; // Go back to main menu
-            }
-        }
-        // Draw
-        BeginDrawing();
-        ClearBackground(RAYWHITE);
-
-        if (currentState == MENU)
-        {
-            // Draw the Main Menu
-            // DrawText("Runner Game", screenWidth / 2 - MeasureText("Runner Game", 40) / 2, screenHeight / 2 - 150, 40, DARKGRAY);
-            // DrawRectangle(screenWidth / 2 - 50, screenHeight / 2 - 60, 100, 40, LIGHTGRAY);
-            DrawText("> Play", 720, 300, 36, PURPLE);
-            DrawText("> Controls", 720, 350, 36, PURPLE);
-            DrawText("> Credits", 720, 400, 36, PURPLE);
-            DrawText("> Quit", 720, 450, 36, PURPLE);
-            scoreUpdated = false;
-            // DrawRectangle(screenWidth / 2 - 50, screenHeight / 2, 100, 40, LIGHTGRAY);
-
-            // DrawRectangle(screenWidth / 2 - 50, screenHeight / 2 + 60, 100, 40, LIGHTGRAY);
-        }
-        else if (currentState == GAMEPLAY)
-        {
             if (!gameOver)
             {
                 // Handle player jumping
@@ -383,28 +356,28 @@ int main()
                     score += 10;
                     coin.x = 2000;
                 }
-                frameCounter2 += GetFrameTime() * 5; // Update counter based on time and animation speed
-                if (frameCounter2 >= 1.0f)
+                coinFrameCounter += GetFrameTime() * 5; // Update counter based on time and animation speed
+                if (coinFrameCounter >= 1.0f)
                 {
-                    frameCounter2 = 0.0f;
-                    currentFrame2++;
-                    if (currentFrame2 > 5)
-                        currentFrame2 = 0; // Loop through frames (assuming 6 frames total)
+                    coinFrameCounter = 0.0f;
+                    coinFrame++;
+                    if (coinFrame > 5)
+                        coinFrame = 0; // Loop through frames (assuming 6 frames total)
                 }
                 if (!isJumping)
                 {
-                    frameCounter += GetFrameTime() * frameSpeed; // Update counter based on time and animation speed
-                    if (frameCounter >= 1.0f)
+                    runnerFrameCounter += GetFrameTime() * frameSpeed; // Update counter based on time and animation speed
+                    if (runnerFrameCounter >= 1.0f)
                     {
-                        frameCounter = 0.0f;
-                        currentFrame++;
-                        if (currentFrame > 5)
-                            currentFrame = 0; // Loop through frames (assuming 6 frames total)
+                        runnerFrameCounter = 0.0f;
+                        runnerFrame++;
+                        if (runnerFrame > 5)
+                            runnerFrame = 0; // Loop through frames (assuming 6 frames total)
                     }
                 }
                 else
                 {
-                    currentFrame = 0; // Reset to the first frame when jumping
+                    runnerFrame = 0; // Reset to the first frame when jumping
                 }
                 backgroundX1 -= backgroundScrollSpeed;
                 backgroundX2 -= backgroundScrollSpeed;
@@ -456,10 +429,8 @@ int main()
                     writeScore(score);
                     scoreUpdated = true;
 
-                    thread uploadThread(uploadScores, playerName,score); 
-                    uploadThread.detach();// thread will automatically terminate after upload is complete
-                    thread downloadThread(downloadScores);
-                    downloadThread.detach();
+                    thread uploadThread(uploadScores, playerName, score);
+                    uploadThread.detach(); // thread will automatically terminate after upload is complete
                 }
                 // Restart game when R is pressed
                 if (IsKeyPressed(KEY_R))
@@ -478,6 +449,7 @@ int main()
                 }
                 if (IsKeyPressed(KEY_M))
                 {
+                    downloadScores();
                     gameOver = false;
                     fps = 120;
                     SetTargetFPS(fps);
@@ -491,12 +463,12 @@ int main()
             {
                 if (!isHurt || (flashTimer < flashInterval / 2))
                 {
-                    DrawTexture(playerTextures[character - 1][currentFrame], (int)player.x, (int)player.y, WHITE);
+                    DrawTexture(playerTextures[character - 1][runnerFrame], (int)player.x, (int)player.y, WHITE);
                 }
                 // Draw player and obstacle using sprites
                 // DrawTexture(playerTextures[currentFrame], (int)player.x, (int)player.y, WHITE);
                 DrawTexture(obstacleTexture, (int)obstacle.x, (int)obstacle.y, WHITE);
-                DrawTexture(coinTextures[currentFrame2], (int)coin.x, (int)coin.y, YELLOW);
+                DrawTexture(coinTextures[coinFrame], (int)coin.x, (int)coin.y, YELLOW);
 
                 // Draw lives as hearts
                 for (int i = 0; i < lives; i++)
@@ -513,21 +485,34 @@ int main()
         }
         else if (currentState == INSTRUCTIONS)
         {
-            // Draw the instructions screen
+            // Check for user input to return to the menu
             DrawTexture(controlsTexture, 0, 0, WHITE);
+            if (GetKeyPressed())
+            {
+                currentState = MENU; // Go back to main menu
+            }
         }
         else if (currentState == CREDITS)
         {
-            // Draw the credits screen
             DrawTexture(creditsTexture, 0, 0, WHITE);
+            // Check for user input to return to the menu
+            if (GetKeyPressed())
+            {
+                currentState = MENU; // Go back to main menu
+            }
         }
         else if (currentState == CHARACTER)
         {
+            // Check for user input to return to the menu
+            if (IsKeyPressed(KEY_ESCAPE))
+            {
+                currentState = MENU; // Go back to main menu
+            }
             DrawTexture(profileBackgroundTexture, 0, 0, WHITE);
             DrawText(playerName, 365, 675, 32, WHITE);
             DrawText(avatars[character - 1].c_str(), 70, 210, 32, WHITE);
             DrawText(descriptions[character - 1].c_str(), 70, 550, 32, WHITE);
-            frameCounter3 += GetFrameTime() * 5; // Update counter based on time and animation speed
+            previewFrameCounter += GetFrameTime() * 5; // Update counter based on time and animation speed
 
             int key = GetKeyPressed();
             if (key >= 32 && key <= 125 && letterCount < 12)
@@ -536,13 +521,11 @@ int main()
                 playerName[letterCount + 1] = '\0';
                 letterCount++;
             }
-
             if (IsKeyPressed(KEY_BACKSPACE) && letterCount > 0)
             {
                 playerName[letterCount - 1] = '\0';
                 letterCount--;
             }
-
             if (IsKeyPressed(KEY_ENTER) && letterCount > 0)
             {
                 lives = 3;
@@ -556,15 +539,13 @@ int main()
                 isHurt = false;
                 score = 0;
             }
-
-            if (frameCounter3 >= 1.0f)
+            if (previewFrameCounter >= 1.0f)
             {
-                frameCounter3 = 0.0f;
-                currentFrame3++;
-                if (currentFrame3 > 5)
-                    currentFrame3 = 0; // Loop through frames (assuming 6 frames total)
+                previewFrameCounter = 0.0f;
+                previewFrame++;
+                if (previewFrame > 5)
+                    previewFrame = 0; // Loop through frames (assuming 6 frames total)
             }
-
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             {
                 Vector2 mousePosition = GetMousePosition();
@@ -593,7 +574,7 @@ int main()
                     character = 5;
                     previeW = {200, 350, 400, 200};
                 }
-                if (CheckCollisionPointRec(mousePosition, (Rectangle){655, 655, 215, 60}))
+                if (CheckCollisionPointRec(mousePosition, (Rectangle){655, 655, 215, 60}) && letterCount > 0)
                 {
                     lives = 3;
                     gameOver = false;
@@ -607,9 +588,11 @@ int main()
                     score = 0;
                 }
             }
-            DrawTexture(playerTextures[character - 1][currentFrame3], (int)previeW.x, (int)previeW.y, WHITE);
+            DrawTexture(playerTextures[character - 1][previewFrame], (int)previeW.x, (int)previeW.y, WHITE);
         }
-
+        // Draw
+        BeginDrawing();
+        ClearBackground(RAYWHITE);
         EndDrawing();
     }
     CloseWindow(); // Close window and OpenGL context
