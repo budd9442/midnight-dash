@@ -175,13 +175,13 @@ int main()
         if (currentState == MENU)
         {
             DrawTexture(menuTexture, 0, 0, WHITE);
-            DrawText(("Personal Best : " + to_string(personalBest)).c_str(), 610, 630, 32, RAYWHITE);
+            DrawText(("Personal Best : " + to_string(personalBest)).c_str(), 510, 630, 32, RAYWHITE);
             int count = 0;
-            DrawText("Leaderboard ", 50, 100, 32, RAYWHITE);
+            //DrawText("Leaderboard ", 50, 100, 32, RAYWHITE);
             for (pair<string, string> p : highScores)
             {
-                DrawText((p.first).c_str(), 50, 150 + (count * 30), 24, WHITE);
-                DrawText((p.second).c_str(), 200, 150 + (count * 30), 24, WHITE);
+                DrawText((p.first).c_str(), 60, 170 + (count * 30), 24, WHITE);
+                DrawText((p.second).c_str(), 200, 170 + (count * 30), 24, WHITE);
                 count++;
             }
 
