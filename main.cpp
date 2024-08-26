@@ -14,7 +14,8 @@ typedef enum GameState // Enumerate to keep track of game state
     GAMEPLAY,
     INSTRUCTIONS,
     CREDITS,
-    CHARACTER
+    CHARACTER,
+    GAMEOVER
 } GameState;
 
 vector<pair<string, string>> highScores; // vector to store name and score of top 5 players
@@ -104,22 +105,23 @@ int main() // main function
     {
         for (int i = 0; i < 6; i++)
         {
-            playerTextures[k][i] = LoadTexture(("sprites/players/" + to_string(k + 1) + "/" + to_string(i + 1) + ".png").c_str());
+            playerTextures[k][i] = LoadTexture(("assets/players/" + to_string(k + 1) + "/" + to_string(i + 1) + ".png").c_str());
         }
     }
 
     for (int i = 0; i < 6; i++)
     {
-        coinTextures[i] = LoadTexture(("sprites/other/coin/" + to_string(i + 1) + ".png").c_str());
+        coinTextures[i] = LoadTexture(("assets/other/coin/" + to_string(i + 1) + ".png").c_str());
     }
 
-    Texture2D backgroundTexture = LoadTexture("background.png");             // Background image
-    Texture2D menuTexture = LoadTexture("menu.png");                         // menu texture
-    Texture2D obstacleTexture = LoadTexture("sprites/obstacles/1.png");      // Obstacle texture
-    Texture2D heartTexture = LoadTexture("sprites/other/heart.png");         // Heart texture
-    Texture2D profileBackgroundTexture = LoadTexture("profileSelector.png"); // profile selector background
-    Texture2D controlsTexture = LoadTexture("sprites/other/controls.png");   // controls background
-    Texture2D creditsTexture = LoadTexture("sprites/other/credits.png");     // credits background
+    Texture2D backgroundTexture = LoadTexture("assets/background.png");                   // Background image
+    Texture2D menuTexture = LoadTexture("assets/menus/menu.png");                         // menu texture
+    Texture2D obstacleTexture = LoadTexture("assets/obstacles/1.png");                    // Obstacle texture
+    Texture2D heartTexture = LoadTexture("assets/other/heart.png");                       // Heart texture
+    Texture2D profileBackgroundTexture = LoadTexture("assets/menus/profileSelector.png"); // profile selector background
+    Texture2D controlsTexture = LoadTexture("assets/menus/controls.png");                 // controls background
+    Texture2D creditsTexture = LoadTexture("assets/menus/credits.png");                   // credits background
+    Texture2D gameOverTexture = LoadTexture("assets/menus/gameover.png");                 // game over background
 
     int personalBest = getPersonalBest(); // retrieves personal best score and stores it in a varianle
 
@@ -231,12 +233,12 @@ int main() // main function
                 // Instructions Button
                 else if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 350, 200, 30}))
                 {
-                    currentState = INSTRUCTIONS; // Go to instructions screen
+                    currentState = INSTRUCTIONS;
                 }
                 // Credits Button
                 else if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 400, 200, 30}))
                 {
-                    currentState = CREDITS; // Go to credits screen
+                    currentState = CREDITS;
                 }
                 // exit buttpn
                 else if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 450, 200, 30}))
@@ -248,11 +250,16 @@ int main() // main function
         }
         else if (currentState == GAMEPLAY)
         {
+            BeginDrawing();
+            ClearBackground(RAYWHITE);
+            // Draw background
+            DrawTexture(backgroundTexture, (int)backgroundX1, 0, WHITE);
+            DrawTexture(backgroundTexture, (int)backgroundX2, 0, WHITE);
             player = {player.x, player.y, (float)playerTextures[character - 1][0].width, (float)playerTextures[character - 1][0].height}; // Player's position and size
             if (!gameOver)
             {
                 // Handle player jumping
-                if (character == 4)
+                if (character == 4) // fly mode
                 {
                     if (IsKeyDown(KEY_W))
                     {
@@ -263,7 +270,7 @@ int main() // main function
                         player.y += 1;
                     }
                 }
-                else
+                else // walking mode
                 {
                     if (IsKeyPressed(KEY_SPACE) && !isJumping)
                     {
@@ -317,11 +324,11 @@ int main() // main function
 
                 if (obstacleSpawnTimer >= obstacleSpawnInterval && (obstacle.x > screenWidth || obstacle.x < 0))
                 {
-                    obstacle.x = screenWidth;                                // Reset obstacle to the right of the screen
-                    obstacle.y = screenHeight - obstacleTexture.height - 50; // Randomize Y position
+                    obstacle.x = screenWidth; // Reset obstacle to the right of the screen
+                    obstacle.y = screenHeight - obstacleTexture.height - 50;
                     obstacleSpawnTimer = 0.0f;
                     obstacleSpawnInterval = rand() % 10;
-                    fps += 5;
+                    fps += 5; // increase game speed
                     SetTargetFPS(fps);
                 }
 
@@ -408,56 +415,10 @@ int main() // main function
                     }
                 }
             }
-            BeginDrawing();
-            ClearBackground(RAYWHITE);
-            // Draw background
-            DrawTexture(backgroundTexture, (int)backgroundX1, 0, WHITE);
-            DrawTexture(backgroundTexture, (int)backgroundX2, 0, WHITE);
 
             if (gameOver)
             {
-                // Draw Game Over screen
-                DrawText("GAME OVER", screenWidth / 2 - MeasureText("GAME OVER", 100) / 2, screenHeight / 2 - 20, 100, RED);
-                DrawText("Press R to Restart, M to go back to menu", 300, 680, 20, GRAY);
-                if (score > getPersonalBest())
-                    DrawText(("New personalBest : " + to_string(score)).c_str(), 400, 490, 32, WHITE);
-                else
-                    DrawText(("Score : " + to_string(score)).c_str(), 430, 490, 32, WHITE);
-                if (!scoreUpdated)
-                {
-
-                    writeScore(score);
-                    scoreUpdated = true;
-
-                    thread uploadThread(uploadScores, playerName, score);
-                    uploadThread.detach(); // thread will automatically terminate after upload is complete
-                }
-                // Restart game when R is pressed
-                if (IsKeyPressed(KEY_R))
-                {
-                    lives = 3;
-                    gameOver = false;
-                    obstacle.x = screenWidth;
-                    fps = 120;
-                    SetTargetFPS(fps);
-                    currentState = GAMEPLAY;
-                    player.x = 100;
-                    player.y = 700;
-                    isHurt = false;
-                    score = 0;
-                    scoreUpdated = false;
-                }
-                if (IsKeyPressed(KEY_M))
-                {
-                    downloadScores();
-                    gameOver = false;
-                    fps = 120;
-                    SetTargetFPS(fps);
-                    personalBest = getPersonalBest();
-                    updateHighScores();
-                    currentState = MENU;
-                    scoreUpdated = false;
-                }
+                currentState = GAMEOVER;
             }
             else
             {
@@ -465,8 +426,6 @@ int main() // main function
                 {
                     DrawTexture(playerTextures[character - 1][runnerFrame], (int)player.x, (int)player.y, WHITE);
                 }
-                // Draw player and obstacle using sprites
-                // DrawTexture(playerTextures[currentFrame], (int)player.x, (int)player.y, WHITE);
                 DrawTexture(obstacleTexture, (int)obstacle.x, (int)obstacle.y, WHITE);
                 DrawTexture(coinTextures[coinFrame], (int)coin.x, (int)coin.y, YELLOW);
 
@@ -590,10 +549,53 @@ int main() // main function
             }
             DrawTexture(playerTextures[character - 1][previewFrame], (int)previeW.x, (int)previeW.y, WHITE);
         }
+        else if (currentState == GAMEOVER)
+        {
+            // Draw Game Over screen
+            DrawTexture(gameOverTexture,0,0,WHITE);
+            if (score > getPersonalBest())
+                DrawText(("New personalBest : " + to_string(score)).c_str(), 400, 490, 32, WHITE);
+            else
+                DrawText(("Score : " + to_string(score)).c_str(), 430, 490, 32, WHITE);
+            if (!scoreUpdated)
+            {
+
+                writeScore(score);
+                scoreUpdated = true;
+
+                thread uploadThread(uploadScores, playerName, score);
+                uploadThread.detach(); // thread will automatically terminate after upload is complete
+            }
+            // Restart game when R is pressed
+            if (IsKeyPressed(KEY_R))
+            {
+                lives = 3;
+                gameOver = false;
+                obstacle.x = screenWidth;
+                fps = 120;
+                SetTargetFPS(fps);
+                currentState = GAMEPLAY;
+                player.x = 100;
+                player.y = 700;
+                isHurt = false;
+                score = 0;
+                scoreUpdated = false;
+            }
+            if (IsKeyPressed(KEY_M))
+            {
+                downloadScores();
+                gameOver = false;
+                fps = 120;
+                SetTargetFPS(fps);
+                personalBest = getPersonalBest();
+                updateHighScores();
+                currentState = MENU;
+                scoreUpdated = false;
+            }
+        }
         // Draw
-        BeginDrawing();
         ClearBackground(RAYWHITE);
-        EndDrawing();
+        EndDrawing(); // end of loop for one single frame
     }
     CloseWindow(); // Close window and OpenGL context
     return 0;
