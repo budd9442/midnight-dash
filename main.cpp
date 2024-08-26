@@ -2,6 +2,9 @@
 #include <iostream>
 #include <math.h>
 #include <fstream>
+#include <vector>
+#include <string>
+#include <thread>
 using namespace std;
 
 typedef enum GameState
@@ -12,6 +15,8 @@ typedef enum GameState
     CREDITS,
     CHARACTER
 } GameState;
+
+vector<pair<string, string>> highScores;
 
 string avatars[] = {
     "  Random girl #1",
@@ -27,30 +32,57 @@ string descriptions[] = {
     "Terrible at driving",
     "    doesnt talk"};
 
-int getHighScore(){
+int getPersonalBest()
+{
     ifstream scorefile("scores");
     int n;
     int max;
-    scorefile>>max;
-    while(scorefile>>n){
-        if(n>max) max = n;
+    scorefile >> max;
+    while (scorefile >> n)
+    {
+        if (n > max)
+            max = n;
     }
     scorefile.close();
     return max;
 }
 
-void writeScore(int n){
-    fstream scorefile("scores",ios::app);
-    scorefile<<endl<<n;
+void writeScore(int n)
+{
+    fstream scorefile("scores", ios::app);
+    scorefile << endl
+              << n;
     scorefile.close();
 }
 
+void updateHighScores()
+{
+    highScores.clear();
+    string name, score;
+    ifstream scorefile("highScores");
+    while (scorefile >> name)
+    {
+        scorefile >> score;
+        highScores.push_back(make_pair(name, score));
+    }
+    scorefile.close();
+}
 
+void uploadScores(string name, int score)
+{
+    system(("uploadscore.exe " + string(name) + " " + to_string(score)).c_str());
+}
+
+void downloadScores(){
+    system("getScores.exe");
+}
 
 int main()
 {
-    //system("handlescores.exe ");
-    // Initialization
+    cout << system("getScores");
+    // return 0;
+    //  system("handlescores.exe ");
+    //   Initialization
     bool scoreUpdated = false;
     const int screenWidth = 1024;
     const int screenHeight = 768;
@@ -61,7 +93,7 @@ int main()
 
     InitWindow(screenWidth, screenHeight, "Midnight dash");
     SetTargetFPS(fps);
-    int highScore = getHighScore();
+    int personalBest = getPersonalBest();
     // Load textures (Replace with your own image file paths)
     Texture2D playerTextures[5][6];
     Texture2D coinTextures[6];
@@ -114,7 +146,7 @@ int main()
     int score = 0;     // Player's score
 
     // Life system
-    int lives = 3;        // Number of lives
+    int lives = 3;         // Number of lives
     bool gameOver = false; // Game Over flag
 
     int currentFrame = 0;      // Current frame of animation
@@ -135,14 +167,24 @@ int main()
     float obstacleSpawnInterval = 2.8f;
     float coinSpawnTimer = 0.0f;
     float coinSpawnInterval = 3.7f;
-    
+    system("cls");
+    updateHighScores();
     // Main game loop
     while (!WindowShouldClose())
     {
         if (currentState == MENU)
         {
             DrawTexture(menuTexture, 0, 0, WHITE);
-            DrawText(("High Score : "+to_string(highScore)).c_str(),610,630,32,RAYWHITE);
+            DrawText(("Personal Best : " + to_string(personalBest)).c_str(), 610, 630, 32, RAYWHITE);
+            int count = 0;
+            DrawText("Leaderboard ", 50, 100, 32, RAYWHITE);
+            for (pair<string, string> p : highScores)
+            {
+                DrawText((p.first).c_str(), 50, 150 + (count * 30), 24, WHITE);
+                DrawText((p.second).c_str(), 200, 150 + (count * 30), 24, WHITE);
+                count++;
+            }
+
             // Check for button clicks in the main menu
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             {
@@ -398,20 +440,26 @@ int main()
             // Draw background
             DrawTexture(backgroundTexture, (int)backgroundX1, 0, WHITE);
             DrawTexture(backgroundTexture, (int)backgroundX2, 0, WHITE);
-            
+
             if (gameOver)
             {
                 // Draw Game Over screen
                 DrawText("GAME OVER", screenWidth / 2 - MeasureText("GAME OVER", 100) / 2, screenHeight / 2 - 20, 100, RED);
-                DrawText("Press R to Restart, M to go back to menu", 300,680, 20, GRAY);
-                if(score>getHighScore())
-                    DrawText(("New Highscore : " + to_string(score) ).c_str(), 400, 490, 32, WHITE);
+                DrawText("Press R to Restart, M to go back to menu", 300, 680, 20, GRAY);
+                if (score > getPersonalBest())
+                    DrawText(("New personalBest : " + to_string(score)).c_str(), 400, 490, 32, WHITE);
                 else
-                DrawText(("Score : " + to_string(score)).c_str(), 430, 490, 32, WHITE);
-                if(!scoreUpdated)
+                    DrawText(("Score : " + to_string(score)).c_str(), 430, 490, 32, WHITE);
+                if (!scoreUpdated)
                 {
+
                     writeScore(score);
-                    scoreUpdated =  true;
+                    scoreUpdated = true;
+
+                    thread uploadThread(uploadScores, playerName,score); 
+                    uploadThread.detach();// thread will automatically terminate after upload is complete
+                    thread downloadThread(downloadScores);
+                    downloadThread.detach();
                 }
                 // Restart game when R is pressed
                 if (IsKeyPressed(KEY_R))
@@ -433,9 +481,10 @@ int main()
                     gameOver = false;
                     fps = 120;
                     SetTargetFPS(fps);
-                    highScore = getHighScore();
+                    personalBest = getPersonalBest();
+                    updateHighScores();
                     currentState = MENU;
-                    scoreUpdated =  false;
+                    scoreUpdated = false;
                 }
             }
             else

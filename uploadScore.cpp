@@ -3,10 +3,10 @@
 #include <curl/curl.h>
 using namespace std;
 
-int main()
+int main(int argc, char *argv[])
 {
-    std::string username = "Player1";
-    int score = 1000;
+    string username = argv[1];
+    string score = argv[2];
 
     CURL *curl;
     CURLcode res;
@@ -15,7 +15,7 @@ int main()
     if (curl)
     {
         std::string firebaseUrl = "https://midnight-dash-default-rtdb.asia-southeast1.firebasedatabase.app/highscores.json";
-        std::string jsonData = "{\"username\":\"" + username + "\", \"score\":" + std::to_string(score) + "}";
+        std::string jsonData = "{\"username\":\"" + username + "\", \"score\":" + (score) + "}";
 
         curl_easy_setopt(curl, CURLOPT_URL, firebaseUrl.c_str());
         curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonData.c_str());
