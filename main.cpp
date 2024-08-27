@@ -195,20 +195,21 @@ int main() // main function
     {
         if (currentState == MENU)
         {
-            DrawTexture(menuTexture, 0, 0, WHITE);
+            DrawTexture(menuTexture, 0, 0, WHITE); // main menu background
+
             DrawText(("Personal Best : " + to_string(personalBest)).c_str(), 510, 630, 32, RAYWHITE);
             DrawText("> Play", 720, 300, 36, PURPLE);
             DrawText("> Controls", 720, 350, 36, PURPLE);
             DrawText("> Credits", 720, 400, 36, PURPLE);
             DrawText("> Quit", 720, 450, 36, PURPLE);
 
-            scoreUpdated = false;
+            scoreUpdated = false; 
             int count = 0;
 
-            for (pair<string, string> p : highScores)
+            for (pair<string, string> p : highScores) // foreach loop to display top 5 players
             {
-                DrawText((p.first).c_str(), 60, 170 + (count * 30), 24, WHITE);
-                DrawText((p.second).c_str(), 200, 170 + (count * 30), 24, WHITE);
+                DrawText((p.first).c_str(), 45, 170 + (count * 30), 24, WHITE);
+                DrawText((p.second).c_str(), 250, 170 + (count * 30), 24, WHITE);
                 count++;
             }
 
@@ -220,8 +221,8 @@ int main() // main function
                 // Play Button
                 if (CheckCollisionPointRec(mousePosition, (Rectangle){720, 300, 100, 40}))
                 {
-                    currentState = CHARACTER; // Start the game
-                    lives = 3;
+                    currentState = CHARACTER; // go to character selection
+                    lives = 3;                // resetting variables
                     gameOver = false;
                     obstacle.x = screenWidth;
                     fps = 120;
@@ -263,6 +264,7 @@ int main() // main function
                 {
                     if (IsKeyDown(KEY_W))
                     {
+                        if (player.y>10)   // to prevent character going out of bounds
                         player.y -= 1;
                     }
                     if (IsKeyDown(KEY_S))
@@ -274,24 +276,24 @@ int main() // main function
                 {
                     if (IsKeyPressed(KEY_SPACE) && !isJumping)
                     {
-                        playerVelocity = playerJumpVelocity;
+                        playerVelocity = playerJumpVelocity; // jump when space is pressed
                         isJumping = true;
                     }
                 }
 
                 if (IsKeyDown(KEY_A))
                 {
-                    if (player.x > 50)
+                    if (player.x > 50)  // to prevent character going out of bounds
                         player.x -= 2;
                 }
                 if (IsKeyDown(KEY_D))
                 {
-                    if (player.x < screenWidth - 200)
+                    if (player.x < screenWidth - 200)   // to prevent character going out of bounds
                         player.x += 1;
                 }
                 else
                 {
-                    if (player.x > 50)
+                    if (player.x > 50)  // make the character sowly fall behind when not actively running
                         player.x -= 0.5;
                 }
 
@@ -320,22 +322,26 @@ int main() // main function
                 // Move coin
                 coin.x -= coinSpeed;
 
+
+                // timer to keep track of obstacles spawning
                 obstacleSpawnTimer += GetFrameTime();
 
+                //if enough time has passed since last obstacle and there are no active obstacles
                 if (obstacleSpawnTimer >= obstacleSpawnInterval && (obstacle.x > screenWidth || obstacle.x < 0))
                 {
                     obstacle.x = screenWidth; // Reset obstacle to the right of the screen
                     obstacle.y = screenHeight - obstacleTexture.height - 50;
                     obstacleSpawnTimer = 0.0f;
-                    obstacleSpawnInterval = rand() % 10;
+                    obstacleSpawnInterval = rand() % 10; // randomly set the time until next obstacle spawns
                     fps += 5; // increase game speed
                     SetTargetFPS(fps);
                 }
 
+                
                 coinSpawnTimer += GetFrameTime();
+                 //if enough time has passed since last coin and there are no active coin
                 if (coinSpawnTimer >= coinSpawnInterval && (coin.x > screenWidth || coin.x < 0))
                 {
-
                     coin.x = screenWidth;                                                  // Reset coin to the right of the screen
                     coin.y = screenHeight - coinTextures[0].height - 100 - (rand() % 300); // Randomize Y position within a range
                     coinSpawnTimer = 0.0f;
@@ -346,8 +352,8 @@ int main() // main function
                 {
                     // Reduce life and reset obstacle position
                     lives--;
-                    obstacle.x = 2000;
-                    isHurt = true;
+                    obstacle.x = 2000;  // move the obstacle out of screen
+                    isHurt = true;      // hurt effect 
                     hurtTimer = 0.0f;
                     flashTimer = 0.0f;
 
@@ -363,6 +369,8 @@ int main() // main function
                     score += 10;
                     coin.x = 2000;
                 }
+
+                //frame counters are used for tracking frames of specific objects
                 coinFrameCounter += GetFrameTime() * 5; // Update counter based on time and animation speed
                 if (coinFrameCounter >= 1.0f)
                 {
@@ -371,7 +379,7 @@ int main() // main function
                     if (coinFrame > 5)
                         coinFrame = 0; // Loop through frames (assuming 6 frames total)
                 }
-                if (!isJumping)
+                if (!isJumping) //dont animate the player when jumping
                 {
                     runnerFrameCounter += GetFrameTime() * frameSpeed; // Update counter based on time and animation speed
                     if (runnerFrameCounter >= 1.0f)
@@ -386,7 +394,8 @@ int main() // main function
                 {
                     runnerFrame = 0; // Reset to the first frame when jumping
                 }
-                backgroundX1 -= backgroundScrollSpeed;
+
+                backgroundX1 -= backgroundScrollSpeed; // Background unlimited scrolling effect
                 backgroundX2 -= backgroundScrollSpeed;
 
                 // Reset background position when it moves out of the screen
@@ -422,10 +431,11 @@ int main() // main function
             }
             else
             {
-                if (!isHurt || (flashTimer < flashInterval / 2))
+                if (!isHurt || (flashTimer < flashInterval / 2)) // when hurt, blink the character
                 {
                     DrawTexture(playerTextures[character - 1][runnerFrame], (int)player.x, (int)player.y, WHITE);
                 }
+                
                 DrawTexture(obstacleTexture, (int)obstacle.x, (int)obstacle.y, WHITE);
                 DrawTexture(coinTextures[coinFrame], (int)coin.x, (int)coin.y, YELLOW);
 
@@ -444,9 +454,8 @@ int main() // main function
         }
         else if (currentState == INSTRUCTIONS)
         {
-            // Check for user input to return to the menu
             DrawTexture(controlsTexture, 0, 0, WHITE);
-            if (GetKeyPressed())
+            if (GetKeyPressed())// Check for user input to return to the menu
             {
                 currentState = MENU; // Go back to main menu
             }
@@ -463,29 +472,32 @@ int main() // main function
         else if (currentState == CHARACTER)
         {
             // Check for user input to return to the menu
-            if (IsKeyPressed(KEY_ESCAPE))
+            if (IsKeyPressed(KEY_M))
             {
                 currentState = MENU; // Go back to main menu
             }
+            // draw relevent textures and texts
             DrawTexture(profileBackgroundTexture, 0, 0, WHITE);
             DrawText(playerName, 365, 675, 32, WHITE);
             DrawText(avatars[character - 1].c_str(), 70, 210, 32, WHITE);
             DrawText(descriptions[character - 1].c_str(), 70, 550, 32, WHITE);
             previewFrameCounter += GetFrameTime() * 5; // Update counter based on time and animation speed
 
-            int key = GetKeyPressed();
+            //handling keyboard input for player name
+            int key = GetCharPressed();
+            cout<<(char)key;
             if (key >= 32 && key <= 125 && letterCount < 12)
             {
                 playerName[letterCount] = (char)key;
                 playerName[letterCount + 1] = '\0';
                 letterCount++;
             }
-            if (IsKeyPressed(KEY_BACKSPACE) && letterCount > 0)
+            if (IsKeyPressed(KEY_BACKSPACE) && letterCount > 0)  
             {
                 playerName[letterCount - 1] = '\0';
                 letterCount--;
             }
-            if (IsKeyPressed(KEY_ENTER) && letterCount > 0)
+            if (IsKeyPressed(KEY_ENTER) && letterCount > 0) //if length of name > 0, start the game
             {
                 lives = 3;
                 gameOver = false;
@@ -498,6 +510,7 @@ int main() // main function
                 isHurt = false;
                 score = 0;
             }
+            //frame counter for character rpeviews in avatar selection menu
             if (previewFrameCounter >= 1.0f)
             {
                 previewFrameCounter = 0.0f;
@@ -505,13 +518,13 @@ int main() // main function
                 if (previewFrame > 5)
                     previewFrame = 0; // Loop through frames (assuming 6 frames total)
             }
-            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+            if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) // when clicking on specific avatars
             {
                 Vector2 mousePosition = GetMousePosition();
                 if (CheckCollisionPointRec(mousePosition, (Rectangle){450, 250, 120, 120}))
                 {
                     character = 1;
-                    previeW = {200, 350, 400, 200};
+                    previeW = {200, 350, 400, 200}; // changing the location of the preview as some characters are different in size
                 }
                 if (CheckCollisionPointRec(mousePosition, (Rectangle){600, 250, 120, 120}))
                 {
@@ -535,6 +548,7 @@ int main() // main function
                 }
                 if (CheckCollisionPointRec(mousePosition, (Rectangle){655, 655, 215, 60}) && letterCount > 0)
                 {
+                    // when start button is pressed with a valid name, start the game
                     lives = 3;
                     gameOver = false;
                     obstacle.x = screenWidth;
@@ -553,17 +567,16 @@ int main() // main function
         {
             // Draw Game Over screen
             DrawTexture(gameOverTexture,0,0,WHITE);
-            if (score > getPersonalBest())
+            if (score > getPersonalBest()) // when the score is greater than all locally existing records
                 DrawText(("New personalBest : " + to_string(score)).c_str(), 400, 490, 32, WHITE);
             else
                 DrawText(("Score : " + to_string(score)).c_str(), 430, 490, 32, WHITE);
-            if (!scoreUpdated)
+            if (!scoreUpdated) // to only update the score once. otherwise it'll keep repeating and add a million entries to the file
             {
-
                 writeScore(score);
                 scoreUpdated = true;
 
-                thread uploadThread(uploadScores, playerName, score);
+                thread uploadThread(uploadScores, playerName, score); // call in a separate thread to avoid the game freezing during the upload
                 uploadThread.detach(); // thread will automatically terminate after upload is complete
             }
             // Restart game when R is pressed
@@ -581,7 +594,7 @@ int main() // main function
                 score = 0;
                 scoreUpdated = false;
             }
-            if (IsKeyPressed(KEY_M))
+            if (IsKeyPressed(KEY_M)) // go back to menu
             {
                 downloadScores();
                 gameOver = false;
