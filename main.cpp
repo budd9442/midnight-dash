@@ -377,7 +377,7 @@ int main() // main function
                     coinFrameCounter = 0.0f;
                     coinFrame++;
                     if (coinFrame > 5)
-                        coinFrame = 0; // Loop through frames (assuming 6 frames total)
+                        coinFrame = 0; // Loop through frames ( 6 frames total)
                 }
                 if (!isJumping) //dont animate the player when jumping
                 {
@@ -472,7 +472,7 @@ int main() // main function
         else if (currentState == CHARACTER)
         {
             // Check for user input to return to the menu
-            if (IsKeyPressed(KEY_M))
+            if (IsKeyPressed(KEY_TAB))
             {
                 currentState = MENU; // Go back to main menu
             }
@@ -613,3 +613,4 @@ int main() // main function
     CloseWindow(); // Close window and OpenGL context
     return 0;
 }
+

@@ -3,18 +3,17 @@
 #include <curl/curl.h>
 using namespace std;
 
-int main(int argc, char *argv[])
+int main(int argc, char *argv[])  //./uploadscore <name> <score>
 {
-    string username = argv[1];
-    string score = argv[2];
+    string username = argv[1]; // first argument
+    string score = argv[2]; // second argument
 
     CURL *curl;
     CURLcode res;
-    // curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
     curl = curl_easy_init();
     if (curl)
     {
-        std::string firebaseUrl = "https://midnight-dash-default-rtdb.asia-southeast1.firebasedatabase.app/highscores.json";
+        std::string firebaseUrl = "https://midnight-dash-default-rtdb.asia-southeast1.firebasedatabase.app/highscores.json"; 
         std::string jsonData = "{\"username\":\"" + username + "\", \"score\":" + (score) + "}";
 
         curl_easy_setopt(curl, CURLOPT_URL, firebaseUrl.c_str());
